@@ -1,0 +1,317 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+     <meta http-equiv="Cache-control" content="no-cache">
+     <meta charset="utf-8">
+     <meta http-equiv="Pragma">
+     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+     <meta itemprop="name" content="欢乐斗地主邀你来打牌"/>
+     <meta itemprop="image" content="https://hlddz.huanle.qq.com/logos/hlddz.png" />
+     <meta name="description" itemprop="description" content="无需下载，点开就可以直接玩的斗地主" />
+     <title>TD欢乐斗地主</title>
+     <link rel="icon" type="image/GIF" href="huanle.ico"/>
+     <meta name="apple-mobile-web-app-capable" content="yes"/>
+     <meta name="full-screen" content="yes"/>
+     <meta name="screen-orientation" content="portrait"/>
+     <meta name="x5-fullscreen" content="true"/>
+     <meta name="360-fullscreen" content="true"/>
+     <style>
+         body, canvas, div {
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            -khtml-user-select: none;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+        }
+
+        html {
+            overflow: hidden;
+        }
+
+        html, body {
+            padding: 0;
+            margin: 0;
+            background-color: #000
+        }
+
+        #gameCanvas{
+            display: none;
+        }
+        #Cocos2dGameContainer {
+            -webkit-box-orient: horizontal;
+            display: -webkit-box;
+            -webkit-box-align: center;
+            -webkit-box-pack: center;
+            margin: 0 auto;
+        }
+        #loadingBox{
+            display: none;
+            background:#eaeaea url(tencent-logo.jpg) no-repeat center center;
+            background-size: 74%;
+            position: absolute;
+            top:0;
+            left:0;
+        }
+     </style>
+</head>
+<body style="background: #000">
+    <div id="loadingBox"></div>
+    <canvas id="gameCanvas"></canvas>
+    <script src="src/configs/hlddz-configs.js"></script>
+	<script>
+        var isMainExecutedd = {flag: false};
+		
+		var loadJSAsyn = function (filename, finish_cb) {
+			var d = document, s = document.createElement('script');
+			s.src = filename;
+			s.addEventListener('load', function () {
+				s.parentNode.removeChild(s);
+				this.removeEventListener('load', arguments.callee, false);
+				finish_cb && finish_cb(0);
+			}, false);
+			s.addEventListener('error', function () {
+				s.parentNode.removeChild(s);
+				finish_cb && finish_cb(-1);
+			}, false);
+			d.body.appendChild(s);
+		};
+		
+		var urlParamsData = (function(){
+			var urlParams = {};
+			if (typeof location !== 'undefined' && location.search) {
+                var urlParamString = location.search.substring(1);
+                urlParamString = urlParamString.replace("?", "&");
+                var parts = urlParamString.split('&');
+                for (var i = 0; i < parts.length; i++) {
+                    var nv = parts[i].split('=');
+                    if (!nv[0]) continue;
+                    urlParams[nv[0]] = nv[1] ? decodeURIComponent(nv[1]) : true;
+                }
+            }
+
+            var wxParam = urlParams["wegame_params"];
+            if(wxParam){
+                wxParam = decodeURIComponent(wxParam);
+                var pairs  = wxParam.split("&");
+                for (var i = 0; i < pairs.length; i++) {
+                    var pos = pairs[i].indexOf('=');
+                    if (pos == -1) {
+                        urlParams[pairs[i]] = 1;
+                    }else{
+                        var argName = pairs[i].substring(0, pos);
+                        urlParams[argName] = pairs[i].substring(pos + 1);
+                    }
+                }
+            }
+			return   urlParams;
+		})();
+		
+        var main = function ()
+        {
+            if (isMainExecutedd.flag)
+                return;
+
+            isMainExecutedd.flag = true;
+
+            var urlParams = urlParamsData;
+
+
+            window["tsdk-boot-urlParamObject"] = urlParams;
+            for (var k in hlconfig.env)
+            {
+                urlParams[k] = hlconfig.env[k];
+            }
+
+            var isIOS = (navigator.userAgent.match(/(iphone)|(ipad)|(ios)/i)) ? true : false;
+
+            if (urlParams.disableIOS)
+            {
+                if (isIOS)
+                {
+                    window.location = "//huanle.qq.com/m/ddz/act/index.html#wechat_redirect";
+                }
+            }
+
+            /* -------------------------- *
+             * boot loader
+             * -------------------------- */
+
+            var isNoCache = urlParams.isNoCache || false;
+            var mode = 0;
+            if (urlParams.forceWEBGL) 
+                mode = 2;
+            if (urlParams.forceCanVas) 
+                mode = 1;
+
+            document.ccConfig = {
+                "width": document.body.clientWidth,
+                "height": document.body.clientHeight,
+                "project_type": "javascript",
+                "debugMode": 3,
+                "showFPS": urlParams.showFPS || false,
+                "frameRate": urlParams.fps || 30,
+                "id": "gameCanvas",
+                "renderMode": mode,
+                "engineDir": "frameworks/cocos2d-html5-v3.9",
+                "exposeClassName": false,
+                "modules": [
+                  "cocos2d",
+                  "extensions"
+                ],
+                "noCache": isNoCache
+            };
+
+            /* -------------------------- *
+             * channels
+             * -------------------------- */
+
+            var isloadMidas = true;
+            var isShowLoading = true;
+            // default game url
+			var gamefile = "src/version/hlddz-1.5.2.0.build1.js"
+
+            if (urlParams.ver)
+            {
+                gamefile = "src/version/hlddz-" + urlParams.ver  + ".js";
+            }
+
+            if (urlParams.nocachesrc)
+            {
+                gamefile = "src/version/hlddz-nocache.js";
+            }
+
+            var wxsdk_url = "//wximg.gtimg.com/wxgame/wegame-v2.js";
+
+            if (urlParams.clear)
+            {
+                localStorage.clear();
+                alert("localStorage is clear");
+            }
+            else if (location.href.match(/urlshare.cn/) || urlParams.jumpToRealHostFromUrlShare)
+            {
+                if (location.href.match(/urlshare.cn/))
+                {
+                    window["tsdk-boot-config-isInQZoneShareURL"] = true;
+                }
+
+                if (navigator.userAgent.match(/Qzone/i))
+                {
+                    window["tsdk-boot-config-isInQZoneApp"] = true;
+                }
+                else
+                {
+                    // 默认是空间结合版，在手Q里面运行
+                    window["tsdk-boot-config-isInQZoneUnite"] = true;
+                }
+
+                if (!urlParams.jumpToRealHostFromUrlShare)
+                {
+                    // 如果是urlshare，已经有mqq了，不在才需要自己注入
+                    loadJSAsyn("//open.mobile.qq.com/sdk/qqapi.js?_bid=152");
+                }
+                loadJSAsyn(gamefile);
+            }
+            else if (urlParams.isFromQQMyapp)
+            {
+
+                // 应用宝使用原生的midas sdk
+                isloadMidas = false;
+                window["tsdk-boot-config-isInQQMyapp"] = 1;
+                loadJSAsyn("//qzs.qq.com/open/mobile/h5gamesdk/build/sdk.js");
+                loadJSAsyn(gamefile);
+            }
+            else if (urlParams.isChannelQQHall)
+            {
+                window["tsdk-boot-config-isInQQHall"] = true;
+                loadJSAsyn("//midas.gtimg.cn/h5sdk/js/api/h5sdk_addon.js");
+                loadJSAsyn(gamefile);
+            }
+            else if (navigator.userAgent.match(/micromessenger/i))
+            {
+                if (urlParams.testWXSDK)
+                {
+                    // 等wx确认好互通方案先
+                    loadJSAsyn(wxsdk_url);
+                    loadJSAsyn(gamefile);
+                }
+                else
+                {
+                    loadJSAsyn("/happyevent/hlddz_wxTicket.js");
+                    loadJSAsyn("//res.wx.qq.com/open/js/jweixin-1.0.0.js");
+                    loadJSAsyn(gamefile);
+                }
+            }
+            else if (navigator.userAgent.match(/QQ/))
+            {
+                loadJSAsyn("//open.mobile.qq.com/sdk/qqapi.js?_bid=152");
+                loadJSAsyn(gamefile);
+            }
+            else
+            {
+                loadJSAsyn(gamefile);
+            }
+
+            loadJSAsyn("src/iconv-lite-v2.js");
+            isloadMidas && loadJSAsyn("//midas.gtimg.cn/h5sdk/js/api/h5sdk.js");
+            loadJSAsyn("src/bad.js");
+            isShowLoading && resetLoadingBG();
+        };
+
+        var resetLoadingBG = function()
+        {
+            var loadingBG = document.getElementById("loadingBox");
+            if (!loadingBG)
+                return;
+            var screenWidth = window.innerWidth;
+            var screenHeight = window.innerHeight;
+
+            if(screenWidth > screenHeight){
+                loadingBG.style.width = screenWidth + "px";
+                loadingBG.style.height = screenHeight + "px";
+                loadingBG.style.webkitTransform = 'rotate(0deg)';
+                loadingBG.style.marginLeft = "0";
+            }else{
+                loadingBG.style.width = screenHeight + "px";
+                loadingBG.style.height = screenWidth + "px";
+                loadingBG.style.webkitTransform = 'rotate(90deg)';
+                loadingBG.style['-webkit-transform-origin'] = '0px 0px 0px';
+                loadingBG.style.marginLeft = "100%";
+            }
+            loadingBG.style.display = "block";
+        };
+ 
+        var removeLoading = function() {
+            var box = document.getElementById("loadingBox");
+            if (box)
+            {
+                box.style.display = "none";
+                document.getElementById("gameCanvas").style.display = "block";
+                window.removeEventListener('resize', resetLoadingBG);
+                window.removeEventListener('orientationchange', resetLoadingBG);
+				window.removeEventListener('hlddz-ui-init', removeLoading);
+                document.body.removeChild(box);
+            }
+        };
+		
+
+		setTimeout(main, 100);
+
+        window.addEventListener('resize', resetLoadingBG);
+        window.addEventListener('orientationchange', resetLoadingBG);
+        window.addEventListener('hlddz-ui-init', removeLoading);
+        setTimeout(function(){  removeLoading(); }, 3000);
+	</script>
+    <script>
+        var _mtac = {};
+        (function() {
+            var mta = document.createElement("script");
+            mta.src = "//pingjs.qq.com/h5/stats.js?v2.0.2";
+            mta.setAttribute("name", "MTAH5");
+            mta.setAttribute("sid", "500378400");
+            mta.setAttribute("cid", "500378401");
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(mta, s);
+        })();
+    </script>
+</body>
+</html>
